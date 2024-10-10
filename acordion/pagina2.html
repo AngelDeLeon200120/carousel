@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carousel Page Transition</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
+        }
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+            transition: all 1s ease;
+        }
+        .accordion {
+            display: flex;
+            height: 50vh;
+            gap: 20px;
+            transition: all 1s ease;
+        }
+        .accordion-item {
+            width: 5vw;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            transition: all 0.5s ease;
+            cursor: pointer;
+        }
+        .accordion-item.active {
+            width: 30vw;
+        }
+        .page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transition: all 1s ease;
+            transform: scale(0.1);
+        }
+        .page.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .page-content {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .nav {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+        .nav-item {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+        .nav-item:hover {
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav" id="nav">
+        <a class="nav-item" data-page="0">Home</a>
+        <a class="nav-item" data-page="1">About Us</a>
+        <a class="nav-item" data-page="2">Services</a>
+        <a class="nav-item" data-page="3">Contact</a>
+    </div>
+    <div class="container">
+        <div class="accordion" id="accordion"></div>
+    </div>
+
+    <script>
+        const pages = [
+            { image: './img/img1.jpg', title: 'Welcome Home', content: 'This is our beautiful homepage.' },
+            { image: './img/img2.jpg', title: 'About Us', content: 'Learn more about our company and values.' },
+            { image: './img/img3.jpg', title: 'Our Services', content: 'Discover what we can do for you.' },
+            { image: './img/img1.jpg', title: 'Contact Us', content: 'Get in touch with our team.' },
+            { image: './img/img2.jpg', title: 'Gallery', content: 'View our project gallery.' },
+            { image: './img/img3.jpg', title: 'Blog', content: 'Read our latest articles and updates.' },
+        ];
+
+        const accordion = document.getElementById('accordion');
+        const container = document.querySelector('.container');
+        const nav = document.getElementById('nav');
+        let currentPage = -1;
+
+        function createAccordion() {
+            pages.forEach((page, index) => {
+                const item = document.createElement('div');
+                item.className = 'accordion-item';
+                item.style.backgroundImage = `url(${page.image})`;
+                accordion.appendChild(item);
+            });
+        }
+
+        function createPage(index) {
+            const page = document.createElement('div');
+            page.className = 'page';
+            page.style.backgroundImage = `url(${pages[index].image})`;
+            
+            const content = document.createElement('div');
+            content.className = 'page-content';
+            content.innerHTML = `
+                <h2>${pages[index].title}</h2>
+                <p>${pages[index].content}</p>
+            `;
+            
+            page.appendChild(content);
+            document.body.appendChild(page);
+            
+            setTimeout(() => {
+                page.classList.add('active');
+                currentPage = index;
+            }, 50);
+        }
+
+        function changePage(index) {
+            if (index === currentPage) return;
+            
+            // Remove the current page
+            const oldPage = document.querySelector('.page.active');
+            if (oldPage) {
+                oldPage.classList.remove('active');
+                setTimeout(() => oldPage.remove(), 1000);
+            }
+            
+            // Perform the complex animation
+            complexAnimation(index).then(() => {
+                createPage(index);
+            });
+        }
+
+        function complexAnimation(index) {
+            return new Promise((resolve) => {
+                const items = document.querySelectorAll('.accordion-item');
+                
+                // Step 1: Zoom out
+                container.style.transform = 'scale(0.5)';
+                
+                setTimeout(() => {
+                    // Step 2: Move to selected item
+                    const selectedItem = items[index];
+                    const itemRect = selectedItem.getBoundingClientRect();
+                    const containerRect = container.getBoundingClientRect();
+                    const moveX = containerRect.width / 2 - (itemRect.left + itemRect.width / 2);
+                    
+                    accordion.style.transform = `translateX(${moveX}px)`;
+                    
+                    setTimeout(() => {
+                        // Step 3: Zoom in
+                        container.style.transform = 'scale(1)';
+                        
+                        setTimeout(() => {
+                            // Reset transforms
+                            container.style.transform = '';
+                            accordion.style.transform = '';
+                            resolve();
+                        }, 1000);
+                    }, 1000);
+                }, 1000);
+            });
+        }
+
+        createAccordion();
+
+        // Set up navigation
+        nav.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageIndex = parseInt(item.getAttribute('data-page'));
+                changePage(pageIndex);
+            });
+        });
+        
+        // Initial animation and auto-entry to Home page
+        window.addEventListener('load', () => {
+            complexAnimation(0).then(() => {
+                changePage(0);  // Go to Home page
+            });
+        });
+    </script>
+</body>
+</html>
